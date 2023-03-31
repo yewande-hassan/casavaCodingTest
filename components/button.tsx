@@ -19,4 +19,4 @@ function ReusableButton({action,isLoading,type}:buttonDetails) {
   )
 }
 
-export default ReusableButton
+export {ReusableButton}

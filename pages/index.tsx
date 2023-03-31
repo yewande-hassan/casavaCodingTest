@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import React from 'react'
 import { Inter } from 'next/font/google'
-import ReusableButton from '../components/button';
+import {ReusableButton} from '../components';
 import { Flex } from '@chakra-ui/react';
 import Link from 'next/link';
 

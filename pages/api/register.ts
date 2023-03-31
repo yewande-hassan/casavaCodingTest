@@ -15,14 +15,18 @@ export default async function registerHandler(
 
     // Hash the user's password using bcrypt
     const passwordHash = await bcrypt.hash(password, salt)
+try {
+    const user = await prisma.user.create({
+        data: {
+          email,
+          password : passwordHash,
+          username
+        },
+      })
+    
+      res.json({message:'Registration Successful'})  
+} catch (error) {
+    return res.status(401).json({ message: 'Registration failed' })
+}
 
-  const user = await prisma.user.create({
-    data: {
-      email,
-      password : passwordHash,
-      username
-    },
-  })
-
-  res.json(user)
 }

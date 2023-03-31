@@ -1,13 +1,11 @@
 import Head from 'next/head'
-import React from 'react'
+import React,{useState} from 'react'
 import { useForm } from 'react-hook-form'
-import { Inter } from 'next/font/google'
 import { Text, Box, Flex, FormControl,FormErrorMessage,Alert,AlertIcon,AlertTitle,CloseButton,} from "@chakra-ui/react"
-import Inputs from '../components/input'
-import ReusableButton from '../components/button'
+import {ReusableButton,Inputs} from '../components'
 import { useRouter } from "next/router";
+import { authService } from '../service';
 
-const inter = Inter({ subsets: ['latin'] })
 
 export default function Register() {
   type RegisterFormData = {
@@ -20,48 +18,46 @@ export default function Register() {
     handleSubmit,
     register,
     watch,
-    formState: { errors, isSubmitting },
+    formState: { errors},
   } = useForm<RegisterFormData>();
 
   const router = useRouter()
-  const [showPassword, setShowPassword] = React.useState(false);
-  const [confirmPassword, setConfirmPassword] = React.useState(false);
-  const [alertMessage, setAlertMessage] = React.useState('')
-  const [alertStatus, setAlertStatus] = React.useState('')
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [confirmPassword, setConfirmPassword] = useState<boolean>(false);
+  const [alertMessage, setAlertMessage] = useState<string>('')
+  const [alertStatus, setAlertStatus] = useState<any>()
   const handleClick = () => setShowPassword(!showPassword);
   const handleClicked = () => setConfirmPassword(!confirmPassword);
-
-  const onSubmit = handleSubmit(async (values) => {
+  const [disabled, setDisabled] =useState<boolean>(false)
+  const resetAlert = () => {
+    setAlertMessage("");
+    setAlertStatus("");
+  };
+  const onSubmit = handleSubmit((values) => {
+    setDisabled(true)
     const {email,username,password}=values
-
-    const response = await fetch('/api/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password, username }),
-    })
-
-    if (response.ok) {
-      const user = await response.json()
-      setAlertMessage('Registered user successfully')
-      setAlertStatus('success')
-      router.push('/login')
-    } else {
-      const error = await response.json()
-      console.error(error.message)
-      const { status, message } = await response.json()
-      const statusMapping:any = {
-        400: 'warning',
-        401: 'error',
-        500: 'error',
-        default: 'error',
-      }
-      const defaultMessage = 'An error occurred. Please try again later.'
-      setAlertMessage(message || defaultMessage)
-      setAlertStatus(statusMapping[status] || statusMapping.default)
-
-    }
+    authService.register(username,email,password)
+    .then((res)=>{
+        if(res.status >= 400){
+          throw new Error("Unable to register user");
+        }
+        return res.json()
+      }).then((user)=>{
+        setAlertMessage('Registered user successfully')
+        setAlertStatus('success')
+        router.push('/login')
+      })
+      .catch((e)=>{
+        const defaultMessage = 'An error occurred. Please try again later.'
+        setAlertMessage(e.message || defaultMessage)
+        setAlertStatus("error")
+        setTimeout(() => {
+          resetAlert()
+        }, 2000);
+      })
+       .finally(()=>
+      setDisabled(false)
+      )
   });
   return (
     <>
@@ -69,26 +65,21 @@ export default function Register() {
         <title>Casava Coding Test</title>
       </Head>
       <Flex
-          h='100vh'
-          m="auto"
-          display="flex"
-          flexDirection="column"
-          justifyContent="center"
-          alignItems="center"
-        >
-            <Box 
-            boxShadow="2xl"
-            rounded="md"
-            bg="gray.50"
-            p="6"
-        >
+        h="100vh"
+        m="auto"
+        display="flex"
+        flexDirection="column"
+        justifyContent="center"
+        alignItems="center"
+      >
+        <Box boxShadow="2xl" rounded="md" bg="gray.50" p="6">
           {alertMessage && (
-        <Alert status={alertStatus} mt={4}>
-          <AlertIcon />
-          <AlertTitle>{alertMessage}</AlertTitle>
-          <CloseButton position="absolute" right="8px" top="8px" />
-        </Alert>
-      )}
+            <Alert status={alertStatus} mt={4}>
+              <AlertIcon />
+              <AlertTitle>{alertMessage}</AlertTitle>
+              <CloseButton position="absolute" right="8px" top="8px" />
+            </Alert>
+          )}
           <Text as="b" fontSize="3xl" my="1rem">
             Register An Account
           </Text>
@@ -182,10 +173,14 @@ export default function Register() {
                 {errors.confirmPassword?.message}
               </FormErrorMessage>
             </FormControl>
-            <ReusableButton action="Register" isLoading={isSubmitting} type="submit"/>
+            <ReusableButton
+              action="Register"
+              isLoading={disabled}
+              type="submit"
+            />
           </form>
         </Box>
-        </Flex>
+      </Flex>
     </>
   );
 }

@@ -1,29 +1,28 @@
-import { Text,Box, Button,Alert, AlertIcon, FormControl, FormLabel, Input, InputGroup, InputRightElement, Link, FormErrorMessage, Flex, CloseButton, AlertTitle } from '@chakra-ui/react'
-import React from 'react'
+import { Text,Box,Alert, AlertIcon, FormControl, FormErrorMessage, Flex, CloseButton, AlertTitle } from '@chakra-ui/react'
+import React,{useState} from 'react'
 import { useForm } from "react-hook-form";
-import ReusableButton from '../components/button';
-import Inputs from '../components/input';
+import {ReusableButton, Inputs} from '../components';
 import { useRouter } from "next/router";
-
+import { authService } from '../service';
 
 function Login() {
-
   type FormData = {
     email: string;
     password: string;
   };  
 
   const {
-    formState: { errors, isSubmitting },
+    formState: { errors},
     handleSubmit,
     register,
   } = useForm<FormData>({
     mode: "onBlur",
   });
   const router = useRouter()
-  const [alertMessage, setAlertMessage] = React.useState("");
-  const [alertStatus, setAlertStatus] = React.useState("");
-  const [showPassword, setShowPassword] = React.useState(false);
+  const [alertMessage, setAlertMessage] = useState<string>("");
+  const [alertStatus, setAlertStatus] = useState<any>();
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [disabled, setDisabled] =useState<boolean>(false)
   const handleClick = () => setShowPassword(!showPassword);
 
   const resetAlert = () => {
@@ -32,33 +31,31 @@ function Login() {
   };
 
   const onSubmit = handleSubmit(async (values) => {
+    setDisabled(true)
     const { email, password } = values;
 
-    const response = await fetch("/api/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (response.ok) {
-      const user = await response.json();
-      setAlertMessage(`Login successful with your email`);
-      setAlertStatus("success");
-      router.push('/home')
-
-    } else {
-      const { status, message } = await response.json();
-
-      const statusMapping:any = {
-        400: 'warning',
-        401: 'error',
-        default: 'error',
+    authService.login(email,password)
+    .then((res)=>{
+      if(res.status >= 400){
+        throw new Error("Unable to Login user");
       }
-      setAlertMessage(message || 'An error occurred')
-      setAlertStatus(statusMapping[status] || statusMapping.default)
-    }
+      return res.json()
+    }).then((user)=>{
+      setAlertMessage('Login user successfully')
+      setAlertStatus('success')
+      router.push('/home')
+    })
+    .catch((e)=>{
+      const defaultMessage = 'An error occurred. Please try again later.'
+      setAlertMessage(e.message || defaultMessage)
+      setAlertStatus("error")
+      setTimeout(() => {
+        resetAlert()
+      }, 2000);
+    })
+    .finally(()=>
+    setDisabled(false)
+    )
   });
   return (
     <>
@@ -118,7 +115,7 @@ function Login() {
             </FormControl>
             <ReusableButton
               action="Login"
-              isLoading={isSubmitting}
+              isLoading={disabled}
               type="submit"
             />
           </form>

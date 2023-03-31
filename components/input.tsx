@@ -58,4 +58,4 @@ function Inputs({
   );
 }
 
-export default Inputs
+export {Inputs}
