@@ -1,9 +1,10 @@
 import { Button } from '@chakra-ui/react'
 import React from 'react'
+type ButtonType = "button" | "submit" | "reset";
 interface buttonDetails{
- action: string
- isLoading?: any
- type: any
+ action: string;
+ isLoading?: any;
+ type: ButtonType;
 }
 function ReusableButton({action,isLoading,type}:buttonDetails) {
   return (
